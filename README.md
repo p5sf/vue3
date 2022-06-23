@@ -461,3 +461,99 @@ app.use(ElButton);
 ```
 
 按照以上设置，项目中所有拥有 `size` 属性的组件的默认尺寸均为 'small'，弹框的初始 z-index 为 3000。
+
+## 项目部署
+
+安装Docker环境
+
+- 创建Dockerfile文件
+
+```dockerfile
+FROM nginx:latest
+MAINTAINER 1770285990@qq.com # 维护者信息
+
+# 将项目根目录下dist文件夹下的所有文件复制到镜像中 /usr/share/nginx/html/ 目录下
+COPY dist/ /usr/share/nginx/html/
+COPY default.conf /etc/nginx/conf.d/default.conf
+```
+
+#### 修改Nginx文件 
+
+文件名：default.conf
+
+```nginx
+upstream my_server{
+  server 121.41.4.33:3000; # 后端server 地址
+  keepalive 2000;
+}
+
+server {
+    listen       80;
+    server_name  www.xxx.com; # 为服务宿主机的ip/域名，这里我主机IP为192.168.232.120
+    
+ 
+    access_log  /var/log/nginx/host.access.log  main;
+    error_log  /var/log/nginx/error.log  error;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html =404;
+    }
+     #  将api开头的接口路径都代理到远程服务器的3000端口
+    location /api/ {
+        proxy_pass http://my_server/api;
+        proxy_set_header Host $host:$server_port;
+        rewrite ^/api/(.*) /$1 break;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   html;
+    }
+    
+}
+```
+
+<font>注意</font>：Dockerfile 、default.conf 、dist目录在同一级目录下。
+
+#### 项目运行
+
+方式一：远程上传前端文件，并执行命令
+
+```shell
+# 进入Dockerfile 所在目录
+cd /opt/vue
+docker build -t vue3 .
+# 查看镜像是否构建成功
+docker images
+# 启动并测试
+docker run -d -p 80:80 --name vue3 vue3
+```
+
+方式二：利用IDEA 中的Docker插件
+
+> Docker 需要远程[开启端口](https://www.cnblogs.com/alinainai/p/12991941.html)，本地能访问到端口
+
+![](https://java-note-pic.oss-cn-beijing.aliyuncs.com/java/202206232332953.png)
+
+查看是否启动成功：访问 http://192.168.232.120
+
+如果不成功，则查看报错日志,删除镜像并重新打包
+
+```shell
+# 查看是否启动成功
+docker ps 
+# 查看日志
+docker logs 容器ID
+# 删除镜像
+docker image rm admin
+```
+
+如果不报错 则开启端口
+
+```shell
+firewall-cmd --zone=public --add-port=80/tcp --permanent
+firewall-cmd --reload
+```
+

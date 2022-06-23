@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "start": "npx serve . -p 8080"
   },
   "dependencies": {
     "element-plus": "^2.2.6",
